@@ -1,13 +1,13 @@
 // Service worker de Mis Cajas: deja la app disponible sin internet.
-const VERSION = "mis-cajas-v1";
+const VERSION = "mis-cajas-v3";
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icon-192.png",
+  "./icon-512.png",
+  "./maskable-512.png",
+  "./apple-touch-icon.png"
 ];
 const LIBS = [
   "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
