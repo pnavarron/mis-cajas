@@ -1,5 +1,5 @@
 // Service worker de Mis Cajas: deja la app disponible sin internet.
-const VERSION = "mis-cajas-v3";
+const VERSION = "mis-cajas-v4";
 const SHELL = [
   "./",
   "./index.html",
