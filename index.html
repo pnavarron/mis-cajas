@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mis Cajas</title>
+<meta name="description" content="Inventario de cajas con foto, listado de contenido y etiquetas QR.">
+<meta name="theme-color" content="#1e1b17">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Una columna tipo app; tarjetas en grilla; barra de acciones fija abajo */
+:root{
+  --bg:#f3f1ec; --surface:#ffffff; --ink:#1e1b17; --muted:#6c655b; --line:#ddd7cc;
+  --kraft:#b27a3c; --kraft-soft:#efe1cf; --kraft-ink:#7a4f1f; --danger:#b3261e;
+  --f-display:"Saira Stencil One","Arial Black",Impact,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#17150f; --surface:#221f19; --ink:#f1ece3; --muted:#a59d90; --line:#3a352c;
+  --kraft:#d39a57; --kraft-soft:#3a2c1b; --kraft-ink:#e8b97f; --danger:#f2786f; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:980px;margin:0 auto}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:16px 8px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{width:34px;height:34px;border-radius:8px}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:26px;letter-spacing:.02em;margin:0;line-height:1}
+.count{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.hright{display:flex;align-items:center;gap:6px}
+button,.btn{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:10px 16px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;text-decoration:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.btn:focus-visible{outline:3px solid var(--kraft);outline-offset:2px}
+.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.kraft{background:var(--kraft);color:#fff;border-color:var(--kraft)}
+.ghost{background:transparent}
+.icon{padding:10px;min-width:44px}
+.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent);background:transparent}
+button:disabled{opacity:.5;cursor:default}
+input[type=text],input[type=search],textarea{font:inherit;font-size:16px;width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+textarea{min-height:200px;resize:vertical;line-height:1.6}
+.f{display:grid;gap:6px;font-weight:600;font-size:13px}
+.f small{font-weight:400;color:var(--muted)}
+.search{position:relative;margin-block:6px 14px}
+.search input{padding-left:42px;border-radius:999px}
+.search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;text-align:left;padding:0;font-weight:400;align-items:stretch}
+.thumb{aspect-ratio:16/10;background:var(--kraft-soft);display:grid;place-items:center;width:100%;overflow:hidden;position:relative}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .noimg{font-family:var(--f-display);font-size:56px;color:var(--kraft);opacity:.55}
+.numtag{position:absolute;left:10px;top:10px;background:var(--ink);color:var(--bg);font-family:var(--f-display);font-size:18px;padding:2px 10px;border-radius:6px}
+.card .body{padding:12px 14px 14px;display:grid;gap:4px;min-width:0}
+.card h3{margin:0;font-size:16px;line-height:1.25}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;color:var(--muted);font-size:13px;align-items:center}
+.chip{display:inline-flex;align-items:center;background:var(--kraft-soft);color:var(--kraft-ink);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.code{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em}
+.hit{font-size:13px;color:var(--kraft-ink)}
+mark{background:color-mix(in srgb,var(--kraft) 30%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+.empty{background:var(--surface);border:2px dashed var(--line);border-radius:14px;padding:32px 20px;text-align:center;display:grid;gap:12px;justify-items:center}
+.empty h2{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0}
+.empty p{margin:0;color:var(--muted);max-width:44ch}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar .in{max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bar button{min-height:52px;font-size:16px}
+.back{margin-block:10px 14px}
+.detail{display:grid;gap:18px}
+.dhead{display:flex;gap:14px;align-items:flex-start}
+.bignum{font-family:var(--f-display);font-size:64px;line-height:.85;color:var(--kraft)}
+.dhead .t{min-width:0;flex:1}
+.dhead h2{margin:0 0 4px;font-size:24px;text-wrap:balance;overflow-wrap:anywhere}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--kraft-soft)}
+.photos img.main{grid-column:1/-1;aspect-ratio:16/10}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.panel h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+ul.items{list-style:none;margin:0;padding:0}
+ul.items li{padding:10px 2px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;overflow-wrap:anywhere}
+ul.items li:last-child{border-bottom:0}
+ul.items li::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--kraft);flex:none;transform:translateY(-2px)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.label-preview{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.qrbox{width:120px;height:120px;background:#fff;border-radius:6px;padding:6px;flex:none}
+.qrbox svg{width:100%;height:100%;display:block}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:color-mix(in srgb,var(--danger) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);border-radius:10px;padding:10px 12px}
+form.edit{display:grid;gap:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.row2{grid-template-columns:1fr}}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.pitem{position:relative}
+.pitem img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--kraft-soft)}
+.pitem button{position:absolute;top:4px;right:4px;min-height:0;padding:3px 9px;font-size:12px;background:var(--ink);color:var(--bg);border:0}
+.addphoto{aspect-ratio:1;border:2px dashed var(--line);border-radius:8px;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;padding:6px;font-weight:600}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,8,5,.75);display:grid;place-items:center;
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--surface);color:var(--ink);border-radius:16px;padding:20px;max-width:440px;width:100%;display:grid;gap:14px}
+.sheet h3{margin:0;font-size:18px}
+.sheet p{margin:0;color:var(--muted)}
+.overlay img.zoom{max-height:85vh;border-radius:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);text-align:center}
+.notice{background:var(--kraft-soft);color:var(--kraft-ink);border-radius:10px;padding:12px 14px;font-size:14px}
+.sel{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sel input{width:20px;height:20px;accent-color:var(--kraft);flex:none}
+.sel .nm{min-width:0;overflow-wrap:anywhere}
+/* escáner */
+.scanner{position:fixed;inset:0;z-index:60;background:#000;color:#fff;display:flex;flex-direction:column}
+.scanner video{flex:1;width:100%;height:100%;object-fit:cover;min-height:0}
+.scanner .frame{position:absolute;left:50%;top:45%;width:min(68vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);border:3px solid var(--kraft)}
+.scanner .hint{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top,0px));text-align:center;font-weight:600;padding:0 20px;text-shadow:0 1px 4px #000}
+.scanner .ctrl{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.scanner .ctrl button{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3);backdrop-filter:blur(6px)}
+/* ajustes */
+.set{display:grid;gap:14px}
+.set .panel p{margin:0 0 10px;color:var(--muted)}
+/* impresión de etiquetas */
+#print-root{display:none}
+@page{size:letter;margin:10mm}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  body > *:not(#print-root){display:none!important}
+  #print-root{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  .plabel{height:61mm;overflow:hidden;border:1px dashed #999;border-radius:3mm;padding:4mm;display:grid;grid-template-columns:38mm minmax(0,1fr);gap:4mm;break-inside:avoid;page-break-inside:avoid;font-family:Arial,Helvetica,sans-serif;color:#000}
+  .plabel .q{width:38mm;display:grid;gap:1.5mm;align-content:start}
+  .plabel .q svg{width:38mm;height:38mm;display:block}
+  .plabel .x{min-width:0;overflow:hidden}
+  .plabel .c{font-family:"Courier New",monospace;font-weight:bold;font-size:13pt;letter-spacing:1pt}
+  .plabel .s{font-size:7.5pt;color:#444}
+  .plabel .n{font-family:var(--f-display);font-size:40pt;line-height:.9}
+  .plabel .t{font-weight:bold;font-size:13pt;line-height:1.15;margin-top:2mm;overflow-wrap:break-word;hyphens:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .plabel .l{font-size:10pt;margin-top:1.5mm}
+  .plabel .i{font-size:8pt;color:#333;margin-top:2mm;line-height:1.3;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .plabel .c{font-size:12pt}
+}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand"><img src="icons/icon-192.png" alt=""><h1>MIS CAJAS</h1></div>
+    <div class="hright">
+      <span class="count" id="count"></span>
+      <button class="ghost" id="btnInstall" type="button" hidden>Instalar</button>
+      <button class="ghost icon" id="btnSettings" type="button" aria-label="Ajustes y respaldo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="view"><div class="empty"><h2>Cargando…</h2></div></main>
+</div>
+
+<nav class="bar" id="bar">
+  <div class="in">
+    <button class="kraft" id="btnScan" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg>
+      Escanear QR</button>
+    <button class="primary" id="btnNew" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva caja</button>
+  </div>
+</nav>
+<input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<div id="print-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const view = $("#view");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad2 = n => String(n).padStart(2,"0");
+const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const ALPH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+function newCode(){
+  let s; do { s=""; const a=new Uint32Array(6); crypto.getRandomValues(a); for(const n of a) s+=ALPH[n%ALPH.length]; }
+  while(boxes.some(b=>b.code===s)); return s;
+}
+function baseURL(){ return location.origin + location.pathname.replace(/index\.html$/,""); }
+function qrText(code){ return baseURL() + "#/caja/" + code; }
+function codeFrom(text){
+  if(!text) return null; text = String(text).trim();
+  let m = text.match(/caja\/([A-Za-z0-9]{6})/); if(m) return m[1].toUpperCase();
+  m = text.match(/^CAJA:([A-Za-z0-9]{6})$/i); if(m) return m[1].toUpperCase();
+  if(/^[A-Za-z0-9]{6}$/.test(text)) return text.toUpperCase();
+  m = text.match(/#([A-Za-z0-9]{6})$/); if(m) return m[1].toUpperCase();
+  return null;
+}
+function toast(msg){ document.querySelectorAll(".toast").forEach(t=>t.remove()); const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
+
+/* ---------- almacenamiento local (IndexedDB) ---------- */
+let idb;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open("mis-cajas",1);
+    r.onupgradeneeded = () => { const d=r.result; d.createObjectStore("boxes",{keyPath:"code"}); d.createObjectStore("photos",{keyPath:"id"}); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn){
+  return new Promise((res,rej)=>{
+    const t = idb.transaction(store, mode); const s = t.objectStore(store); let out;
+    Promise.resolve(fn(s)).then(v=>out=v);
+    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+}
+const reqP = r => new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+const getAllBoxes = () => tx("boxes","readonly", s => reqP(s.getAll()));
+const putBox = b => tx("boxes","readwrite", s => { s.put(b); });
+const delBox = code => tx("boxes","readwrite", s => { s.delete(code); });
+const putPhoto = (id, blob) => tx("photos","readwrite", s => { s.put({id, blob}); });
+const getPhoto = id => tx("photos","readonly", s => reqP(s.get(id)));
+const delPhoto = id => tx("photos","readwrite", s => { s.delete(id); });
+const getAllPhotos = () => tx("photos","readonly", s => reqP(s.getAll()));
+
+const urlCache = new Map();
+async function photoURL(id){
+  if(urlCache.has(id)) return urlCache.get(id);
+  const rec = await getPhoto(id); if(!rec) return "";
+  const u = URL.createObjectURL(rec.blob); urlCache.set(id,u); return u;
+}
+async function hydrateImgs(root){
+  for(const img of root.querySelectorAll("img[data-photo]")){
+    const u = await photoURL(img.dataset.photo); if(u) img.src = u;
+  }
+}
+let askedPersist = false;
+async function askPersist(){ if(askedPersist) return; askedPersist = true; try{ await navigator.storage?.persist?.(); }catch(_){} }
+
+/* ---------- estado y rutas ---------- */
+let boxes = [];
+let query = "";
+let draft = null;
+let uploading = false;
+
+async function reload(){ boxes = (await getAllBoxes()).sort((a,b)=>(a.number||0)-(b.number||0)); }
+function parseRoute(){
+  const h = location.hash.replace(/^#\/?/,"");
+  const [name, arg] = h.split("/");
+  if(name==="caja" && arg) return {name:"box", code:arg.toUpperCase()};
+  if(name==="editar" && arg) return {name:"edit", code:arg.toUpperCase()};
+  if(name==="nueva") return {name:"edit"};
+  if(name==="etiquetas") return {name:"labels"};
+  if(name==="ajustes") return {name:"settings"};
+  if(name==="escanear") return {name:"scan"};
+  const legacy = codeFrom(location.hash); if(legacy) return {name:"box", code:legacy};
+  return {name:"home"};
+}
+function go(hash){ if(location.hash === hash) render(); else location.hash = hash; }
+window.addEventListener("hashchange", ()=>{ render(); window.scrollTo(0,0); });
+
+function render(){
+  const r = parseRoute();
+  $("#count").textContent = `${boxes.length} ${boxes.length===1?"caja":"cajas"}`;
+  $("#bar").hidden = r.name==="edit";
+  if(r.name!=="edit") draft = null;
+  if(r.name==="box") return renderBox(r.code);
+  if(r.name==="edit") return renderEdit(r.code);
+  if(r.name==="labels") return renderLabels();
+  if(r.name==="settings") return renderSettings();
+  if(r.name==="scan"){ history.replaceState(null,"",location.pathname+"#/"); renderHome(); openScanner(); return; }
+  renderHome();
+}
+
+/* ---------- inicio ---------- */
+function renderHome(){
+  if(!boxes.length){
+    view.innerHTML = `<div class="empty">
+      <div class="bignum" aria-hidden="true">01</div>
+      <h2>Tu primera caja</h2>
+      <p>Toca <b>Nueva caja</b>, sácale una foto al contenido y anota lo que lleva. Después imprime su etiqueta QR y pégala en la caja.</p>
+      <button class="primary" type="button" id="emptyNew">Crear la primera caja</button></div>`;
+    $("#emptyNew").onclick = () => go("#/nueva");
+    return;
+  }
+  const q = norm(query.trim());
+  const list = boxes.map(b=>{
+    if(!q) return {b,hits:[]};
+    const head = norm(b.name).includes(q)||norm(b.location).includes(q)||norm(b.code).includes(q)||pad2(b.number)===q.padStart(2,"0");
+    const hits = (b.items||[]).filter(i=>norm(i).includes(q));
+    return (head||hits.length) ? {b,hits} : null;
+  }).filter(Boolean);
+  view.innerHTML = `
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="q" placeholder="¿Dónde guardé…? Busca un objeto o caja" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
+    </div>
+    <div class="actions" style="margin-bottom:14px"><button type="button" class="ghost" id="toLabels">Imprimir etiquetas</button></div>
+    ${list.length ? `<div class="grid">${list.map(({b,hits})=>cardHTML(b,hits,q)).join("")}</div>`
+      : `<div class="empty"><h2>Nada con “${esc(query)}”</h2><p>Prueba con otra palabra o revisa cómo lo anotaste.</p></div>`}`;
+  const qi = $("#q");
+  qi.oninput = e => { query = e.target.value; const p = qi.selectionStart; renderHome(); const n=$("#q"); n.focus(); try{ n.setSelectionRange(p,p); }catch(_){} };
+  $("#toLabels").onclick = () => go("#/etiquetas");
+  view.querySelectorAll(".card").forEach(c => c.onclick = () => go("#/caja/"+c.dataset.code));
+  hydrateImgs(view);
+}
+function highlight(text,q){
+  const i = norm(text).indexOf(q); if(i<0) return esc(text);
+  return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
+}
+function cardHTML(b,hits,q){
+  const p = (b.photos||[])[0]; const n = (b.items||[]).length;
+  return `<button class="card" type="button" data-code="${esc(b.code)}">
+    <div class="thumb">${p?`<img data-photo="${esc(p)}" alt="">`:`<span class="noimg">${pad2(b.number)}</span>`}<span class="numtag">${pad2(b.number)}</span></div>
+    <div class="body"><h3>${esc(b.name||"Caja sin nombre")}</h3>
+      <div class="meta">${b.location?`<span class="chip">${esc(b.location)}</span>`:""}<span>${n} ${n===1?"cosa":"cosas"}</span><span class="code">${esc(b.code)}</span></div>
+      ${hits.length?`<div class="hit">${hits.slice(0,3).map(h=>highlight(h,q)).join(" · ")}</div>`:""}
+    </div></button>`;
+}
+
+/* ---------- detalle ---------- */
+function renderBox(code){
+  const b = boxes.find(x=>x.code===code);
+  if(!b){
+    view.innerHTML = `<button class="back ghost" type="button" id="bk">← Todas las cajas</button>
+      <div class="empty"><h2>No encontré esa caja</h2><p>El código ${esc(code)} no está guardado en este teléfono. Si la registraste en otro equipo, importa su respaldo desde Ajustes.</p></div>`;
+    $("#bk").onclick = () => go("#/"); return;
+  }
+  const photos = b.photos||[];
+  view.innerHTML = `
+    <button class="back ghost" type="button" id="bk">← Todas las cajas</button>
+    <article class="detail">
+      <div class="dhead"><div class="bignum">${pad2(b.number)}</div>
+        <div class="t"><h2>${esc(b.name||"Caja sin nombre")}</h2>
+        <div class="meta">${b.location?`<span class="chip">${esc(b.location)}</span>`:""}<span class="code">Código ${esc(b.code)}</span></div></div></div>
+      ${photos.length ? `<div class="photos">${photos.map((p,i)=>`<img class="${i===0?"main":""}" data-photo="${esc(p)}" alt="Foto ${i+1} del contenido">`).join("")}</div>`
+        : `<div class="notice">Esta caja todavía no tiene foto. Edítala para agregar una.</div>`}
+      <section class="panel"><h4>Contenido · ${(b.items||[]).length}</h4>
+        ${(b.items||[]).length ? `<ul class="items">${b.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>` : `<p style="margin:0;color:var(--muted)">Sin listado aún.</p>`}
+        ${b.notes ? `<p style="margin:12px 0 0;color:var(--muted)">${esc(b.notes)}</p>` : ""}
+      </section>
+      <section class="panel"><h4>Etiqueta</h4>
+        <div class="label-preview"><div class="qrbox">${qrSVG(qrText(b.code))}</div>
+          <div style="display:grid;gap:8px;min-width:0;flex:1">
+            <span style="color:var(--muted);font-size:14px">Imprímela y pégala en un costado de la caja. También puedes guardarla como imagen.</span>
+            <div class="actions"><button type="button" class="kraft" id="printOne">Imprimir etiqueta</button><button type="button" id="imgOne">Guardar imagen</button></div>
+          </div></div>
+      </section>
+      <div class="actions"><button type="button" id="editB">Editar caja</button><button type="button" class="danger" id="delB">Borrar caja</button></div>
+      <div id="confirmSlot"></div>
+    </article>`;
+  hydrateImgs(view);
+  $("#bk").onclick = () => go("#/");
+  $("#printOne").onclick = () => printLabels([b]);
+  $("#imgOne").onclick = () => saveLabelImage(b);
+  $("#editB").onclick = () => go("#/editar/"+b.code);
+  $("#delB").onclick = () => {
+    $("#confirmSlot").innerHTML = `<div class="confirm"><span>¿Borrar la caja ${pad2(b.number)} y sus fotos? No se puede deshacer.</span>
+      <button type="button" class="danger" id="yesDel">Sí, borrar</button><button type="button" class="ghost" id="noDel">Cancelar</button></div>`;
+    $("#noDel").onclick = () => $("#confirmSlot").innerHTML = "";
+    $("#yesDel").onclick = async () => {
+      for(const p of photos){ await delPhoto(p); urlCache.delete(p); }
+      await delBox(b.code); await reload(); toast("Caja borrada"); go("#/");
+    };
+  };
+  view.querySelectorAll(".photos img").forEach(im => im.onclick = () => {
+    const o = document.createElement("div"); o.className="overlay"; o.innerHTML = `<img class="zoom" src="${im.src}" alt="">`;
+    o.onclick = () => o.remove(); document.body.appendChild(o);
+  });
+}
+
+/* ---------- crear / editar ---------- */
+function renderEdit(code){
+  const existing = code ? boxes.find(x=>x.code===code) : null;
+  if(code && !existing){ go("#/"); return; }
+  if(!draft || draft._for !== (code||"new")){
+    draft = existing
+      ? {...existing, photos:[...(existing.photos||[])], itemsText:(existing.items||[]).join("\n"), _for:code, _new:[]}
+      : {code:newCode(), number:boxes.reduce((m,b)=>Math.max(m,b.number||0),0)+1, name:"", location:"", itemsText:"", notes:"", photos:[], _for:"new", _new:[]};
+  }
+  const d = draft;
+  view.innerHTML = `
+    <button class="back ghost" type="button" id="cancel">← Cancelar</button>
+    <div class="dhead" style="margin-bottom:14px"><div class="bignum">${pad2(d.number)}</div>
+      <div class="t"><h2>${existing?"Editar caja":"Nueva caja"}</h2><div class="meta"><span class="code">Código ${esc(d.code)}</span></div></div></div>
+    <form class="edit" id="f">
+      <div class="row2">
+        <label class="f">Nombre<input type="text" id="fName" value="${esc(d.name)}" placeholder="Ej: Loza de la cocina" maxlength="80"></label>
+        <label class="f">Dónde está<input type="text" id="fLoc" value="${esc(d.location)}" placeholder="Ej: Bodega, repisa 2" maxlength="60"></label>
+      </div>
+      <div class="f">Fotos del contenido <small>La primera es la portada. Hasta 6.</small>
+        <div class="pgrid">
+          ${d.photos.map((p,i)=>`<div class="pitem"><img data-photo="${esc(p)}" alt="Foto ${i+1}"><button type="button" data-rm="${i}">Quitar</button></div>`).join("")}
+          ${d.photos.length<6 ? `<label class="addphoto">${uploading?"Guardando…":"+ Sacar o elegir foto"}<input type="file" id="fPhoto" accept="image/*" multiple hidden></label>` : ""}
+        </div>
+      </div>
+      <label class="f">Qué hay dentro <small>Una cosa por línea. Ej: “6 platos hondos”.</small>
+        <textarea id="fItems" placeholder="Hervidor eléctrico&#10;6 platos hondos&#10;Juego de cuchillos">${esc(d.itemsText)}</textarea></label>
+      <label class="f">Notas <small>Opcional</small><input type="text" id="fNotes" value="${esc(d.notes||"")}" placeholder="Ej: Frágil, va arriba" maxlength="140"></label>
+      <div class="actions"><button type="submit" class="primary" id="save" ${uploading?"disabled":""}>Guardar caja</button><button type="button" class="ghost" id="cancel2">Cancelar</button></div>
+    </form>`;
+  hydrateImgs(view);
+  const sync = () => { d.name=$("#fName").value; d.location=$("#fLoc").value; d.itemsText=$("#fItems").value; d.notes=$("#fNotes").value; };
+  ["#fName","#fLoc","#fItems","#fNotes"].forEach(s => $(s).addEventListener("input", sync));
+  const cancel = async () => {
+    for(const id of d._new){ await delPhoto(id); urlCache.delete(id); } // fotos nuevas no guardadas
+    draft = null; go(existing ? "#/caja/"+existing.code : "#/");
+  };
+  $("#cancel").onclick = cancel; $("#cancel2").onclick = cancel;
+  view.querySelectorAll("[data-rm]").forEach(btn => btn.onclick = () => { sync(); d.photos.splice(+btn.dataset.rm,1); renderEdit(code); });
+  const fp = $("#fPhoto");
+  if(fp) fp.onchange = async e => {
+    sync(); const files = [...e.target.files].slice(0, 6-d.photos.length); if(!files.length) return;
+    uploading = true; renderEdit(code);
+    for(const f of files){
+      try{ const blob = await shrink(f); const id = "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+        await putPhoto(id, blob); d.photos.push(id); d._new.push(id); }
+      catch(err){ toast("No se pudo leer esa foto"); }
+    }
+    uploading = false; if(parseRoute().name==="edit") renderEdit(code);
+  };
+  $("#f").onsubmit = async e => {
+    e.preventDefault(); sync();
+    const rec = { code:d.code, number:d.number, name:d.name.trim(), location:d.location.trim(), notes:(d.notes||"").trim(),
+      items:d.itemsText.split("\n").map(s=>s.trim()).filter(Boolean), photos:d.photos, createdAt:d.createdAt||Date.now(), updatedAt:Date.now() };
+    try{
+      await putBox(rec);
+      const keep = new Set(rec.photos);
+      for(const p of [...(existing?.photos||[]), ...d._new]) if(!keep.has(p)){ await delPhoto(p); urlCache.delete(p); }
+      await reload(); askPersist(); draft = null; toast("Caja guardada"); go("#/caja/"+rec.code);
+    }catch(err){ toast("No se pudo guardar. Revisa el espacio libre del teléfono."); }
+  };
+}
+function loadImg(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file); const i=new Image(); i.onload=()=>{res(i);URL.revokeObjectURL(u)}; i.onerror=rej; i.src=u; }); }
+async function shrink(file, max=1600){
+  const img = await loadImg(file); const s = Math.min(1, max/Math.max(img.width,img.height));
+  const c = document.createElement("canvas"); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  return await new Promise(r => c.toBlob(r,"image/jpeg",.82));
+}
+
+/* ---------- QR y etiquetas ---------- */
+function qrMatrix(text){
+  if(typeof qrcode !== "function") throw new Error("qr-lib");
+  const q = qrcode(0,"M"); q.addData(text); q.make(); return q;
+}
+function qrSVG(text){
+  let q; try{ q = qrMatrix(text); }catch(_){ return `<p style="color:#555;font-size:12px;margin:0">Conéctate a internet una vez para generar el QR.</p>`; }
+  const n = q.getModuleCount(); let path = "";
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) path += `M${c} ${r}h1v1h-1z`;
+  return `<svg viewBox="-2 -2 ${n+4} ${n+4}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n+4}" height="${n+4}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+}
+function printLabels(list){
+  if(typeof qrcode !== "function"){ toast("Conéctate a internet una vez para generar los QR"); return; }
+  $("#print-root").innerHTML = list.map(b => `<div class="plabel">
+      <div class="q">${qrSVG(qrText(b.code))}<div class="c">${esc(b.code)}</div><div class="s">Escanea para ver foto y contenido</div></div>
+      <div class="x"><div class="n">${pad2(b.number)}</div><div class="t">${esc(b.name||"Caja")}</div>${b.location?`<div class="l">${esc(b.location)}</div>`:""}
+      <div class="i">${esc((b.items||[]).slice(0,6).join(" · "))}</div></div></div>`).join("");
+  setTimeout(() => window.print(), 50);
+}
+async function saveLabelImage(b){
+  let q; try{ q = qrMatrix(qrText(b.code)); }catch(_){ toast("Conéctate a internet una vez para generar el QR"); return; }
+  const W=1200,H=700,c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d");
+  x.fillStyle="#fff"; x.fillRect(0,0,W,H);
+  const n=q.getModuleCount(), size=520, cell=size/n, ox=50, oy=50; x.fillStyle="#000";
+  for(let r=0;r<n;r++) for(let col=0;col<n;col++) if(q.isDark(r,col)) x.fillRect(Math.floor(ox+col*cell),Math.floor(oy+r*cell),Math.ceil(cell),Math.ceil(cell));
+  x.font="bold 40px 'Courier New',monospace"; x.fillText(b.code, ox, oy+size+55);
+  x.font="22px Arial"; x.fillStyle="#444"; x.fillText("Escanea para ver foto y contenido", ox, oy+size+90);
+  x.fillStyle="#000"; try{ await document.fonts.load("150px 'Saira Stencil One'"); }catch(_){}
+  x.font="150px 'Saira Stencil One', 'Arial Black', sans-serif"; x.fillText(pad2(b.number), 620, 190);
+  x.font="bold 46px Arial"; wrapText(x, b.name||"Caja", 620, 270, 540, 54, 3);
+  if(b.location){ x.font="34px Arial"; x.fillStyle="#333"; wrapText(x, b.location, 620, 470, 540, 40, 2); }
+  const blob = await new Promise(r => c.toBlob(r,"image/png"));
+  const file = new File([blob], `etiqueta-caja-${pad2(b.number)}.png`, {type:"image/png"});
+  if(navigator.canShare?.({files:[file]})){ try{ await navigator.share({files:[file], title:`Caja ${pad2(b.number)}`}); return; }catch(e){ if(e.name==="AbortError") return; } }
+  downloadBlob(blob, file.name);
+}
+function wrapText(x, text, X, Y, maxW, lh, maxLines){
+  const words = String(text).split(/\s+/); let line="", lines=[];
+  for(const w of words){ const t = line?line+" "+w:w; if(x.measureText(t).width>maxW && line){ lines.push(line); line=w; } else line=t; }
+  if(line) lines.push(line); lines.slice(0,maxLines).forEach((l,i)=>x.fillText(l, X, Y+i*lh));
+}
+function downloadBlob(blob, name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500); }
+
+function renderLabels(){
+  if(!boxes.length){ go("#/"); return; }
+  if(!renderLabels.sel) renderLabels.sel = new Set(boxes.map(b=>b.code));
+  const sel = renderLabels.sel;
+  view.innerHTML = `<button class="back ghost" type="button" id="bk">← Todas las cajas</button>
+    <section class="panel" style="display:grid;gap:12px"><h4 style="margin:0">Hoja de etiquetas</h4>
+    <p style="margin:0;color:var(--muted)">Elige las cajas. Se imprimen 8 etiquetas por hoja tamaño carta; en el teléfono puedes enviarlas a la impresora o guardarlas como PDF.</p>
+    <div class="actions"><button type="button" class="ghost" id="all">Todas</button><button type="button" class="ghost" id="none">Ninguna</button></div>
+    <div>${boxes.map(b=>`<label class="sel"><input type="checkbox" data-code="${esc(b.code)}" ${sel.has(b.code)?"checked":""}><b>${pad2(b.number)}</b><span class="nm">${esc(b.name||"Caja sin nombre")}</span><span class="code" style="margin-left:auto;color:var(--muted)">${esc(b.code)}</span></label>`).join("")}</div>
+    <button type="button" class="kraft" id="gen">Imprimir ${sel.size} ${sel.size===1?"etiqueta":"etiquetas"}</button></section>`;
+  $("#bk").onclick = () => go("#/");
+  view.querySelectorAll(".sel input").forEach(i => i.onchange = () => { i.checked ? sel.add(i.dataset.code) : sel.delete(i.dataset.code); $("#gen").textContent = `Imprimir ${sel.size} ${sel.size===1?"etiqueta":"etiquetas"}`; });
+  $("#all").onclick = () => { boxes.forEach(b=>sel.add(b.code)); renderLabels(); };
+  $("#none").onclick = () => { sel.clear(); renderLabels(); };
+  $("#gen").onclick = () => { const list = boxes.filter(b=>sel.has(b.code)); if(!list.length){ toast("Elige al menos una caja"); return; } printLabels(list); };
+}
+
+/* ---------- escáner ---------- */
+let jsQRLoading = null;
+function loadJsQR(){
+  if(window.jsQR) return Promise.resolve();
+  if(!jsQRLoading) jsQRLoading = new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"; s.onload=res; s.onerror=()=>{jsQRLoading=null;rej()}; document.head.appendChild(s); });
+  return jsQRLoading;
+}
+async function makeDetector(){
+  try{
+    if("BarcodeDetector" in window){
+      const f = await BarcodeDetector.getSupportedFormats();
+      if(f.includes("qr_code")){ const bd = new BarcodeDetector({formats:["qr_code"]}); return async src => { const r = await bd.detect(src); return r[0]?.rawValue || null; }; }
+    }
+  }catch(_){}
+  await loadJsQR();
+  const c = document.createElement("canvas"), x = c.getContext("2d",{willReadFrequently:true});
+  return async src => {
+    const w = src.videoWidth||src.naturalWidth||src.width, h = src.videoHeight||src.naturalHeight||src.height; if(!w||!h) return null;
+    const s = Math.min(1, 900/Math.max(w,h)); c.width=Math.round(w*s); c.height=Math.round(h*s); x.drawImage(src,0,0,c.width,c.height);
+    const r = jsQR(x.getImageData(0,0,c.width,c.height).data, c.width, c.height, {inversionAttempts:"attemptBoth"}); return r?.data || null;
+  };
+}
+let scanning = null;
+async function openScanner(){
+  if(scanning) return;
+  if(!navigator.mediaDevices?.getUserMedia){ $("#scanFile").click(); return; }
+  const el = document.createElement("div"); el.className="scanner";
+  el.innerHTML = `<video playsinline muted></video><div class="frame"></div><div class="hint">Apunta al código QR de la caja</div>
+    <div class="ctrl"><button type="button" id="scClose">Cerrar</button><button type="button" id="scTorch" hidden>Linterna</button><button type="button" id="scType">Escribir código</button></div>`;
+  document.body.appendChild(el);
+  const video = el.querySelector("video"); let stream, stop = false, torch = false;
+  const close = () => { stop = true; stream?.getTracks().forEach(t=>t.stop()); el.remove(); scanning = null; };
+  scanning = close;
+  el.querySelector("#scClose").onclick = close;
+  el.querySelector("#scType").onclick = () => { close(); askCode("Escribe el código de 6 caracteres que aparece bajo el QR."); };
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720}}, audio:false});
+  }catch(err){
+    close();
+    if(err.name==="NotAllowedError") showSheet("Sin permiso de cámara","Permite el uso de la cámara para Mis Cajas en los ajustes del teléfono, o saca una foto del QR.", [["Sacar foto del QR",()=>$("#scanFile").click()],["Escribir código",()=>askCode("")]]);
+    else $("#scanFile").click();
+    return;
+  }
+  if(stop){ stream.getTracks().forEach(t=>t.stop()); return; }
+  video.srcObject = stream; await video.play().catch(()=>{});
+  const track = stream.getVideoTracks()[0];
+  if(track?.getCapabilities?.().torch){ const tb = el.querySelector("#scTorch"); tb.hidden=false;
+    tb.onclick = async () => { torch=!torch; try{ await track.applyConstraints({advanced:[{torch}]}); tb.textContent = torch?"Apagar linterna":"Linterna"; }catch(_){} }; }
+  let detect;
+  try{ detect = await makeDetector(); }catch(_){ close(); toast("Conéctate a internet una vez para activar el escáner"); return; }
+  const tick = async () => {
+    if(stop) return;
+    try{
+      if(video.readyState>=2){
+        const raw = await detect(video);
+        if(raw){
+          const code = codeFrom(raw);
+          if(code){ navigator.vibrate?.(60); close(); openCode(code); return; }
+        }
+      }
+    }catch(_){}
+    setTimeout(tick, 180);
+  };
+  tick();
+}
+$("#scanFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const img = await loadImg(f); const detect = await makeDetector();
+    let raw = await detect(img);
+    if(!raw){ await loadJsQR(); raw = await (async()=>{ const c=document.createElement("canvas"); const s=Math.min(1,1600/Math.max(img.width,img.height)); c.width=img.width*s; c.height=img.height*s; const x=c.getContext("2d"); x.drawImage(img,0,0,c.width,c.height); return jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height)?.data; })(); }
+    const code = codeFrom(raw);
+    if(code) openCode(code); else askCode("No pude leer el QR en esa foto. Prueba con más luz o escribe el código que aparece bajo el QR.");
+  }catch(_){ askCode("No pude leer esa imagen. Escribe el código que aparece bajo el QR."); }
+};
+function openCode(code){
+  if(boxes.some(b=>b.code===code)) go("#/caja/"+code);
+  else showSheet("Caja no encontrada", `El código ${code} no está guardado en este teléfono.`, [["Entendido",()=>{}]]);
+}
+function askCode(msg){
+  const o = document.createElement("div"); o.className="overlay";
+  o.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><h3>Abrir caja por código</h3>${msg?`<p>${esc(msg)}</p>`:""}
+    <form id="mf" style="display:grid;gap:10px"><input type="text" id="mcode" placeholder="Ej: K7Q2MA" maxlength="6" autocomplete="off" autocapitalize="characters" style="font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.15em">
+    <div class="actions"><button class="primary" type="submit">Abrir caja</button><button class="ghost" type="button" id="mclose">Cerrar</button></div></form></div>`;
+  document.body.appendChild(o);
+  o.addEventListener("click", e => { if(e.target===o) o.remove(); });
+  o.querySelector("#mclose").onclick = () => o.remove();
+  setTimeout(()=>o.querySelector("#mcode").focus(), 50);
+  o.querySelector("#mf").onsubmit = e => { e.preventDefault(); const c = codeFrom(o.querySelector("#mcode").value); if(!c){ toast("El código tiene 6 letras o números"); return; } o.remove(); openCode(c); };
+}
+function showSheet(title, msg, buttons){
+  const o = document.createElement("div"); o.className="overlay";
+  o.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><p>${esc(msg)}</p><div class="actions"></div></div>`;
+  const acts = o.querySelector(".actions");
+  buttons.forEach(([label,fn],i)=>{ const b=document.createElement("button"); b.type="button"; b.className=i===0?"primary":"ghost"; b.textContent=label; b.onclick=()=>{o.remove();fn()}; acts.appendChild(b); });
+  o.addEventListener("click", e => { if(e.target===o) o.remove(); });
+  document.body.appendChild(o);
+}
+
+/* ---------- ajustes y respaldo ---------- */
+async function renderSettings(){
+  let usage = "";
+  try{ const e = await navigator.storage.estimate(); usage = `Usando ${(e.usage/1048576).toFixed(1)} MB en este teléfono.`; }catch(_){}
+  let persisted = false; try{ persisted = await navigator.storage.persisted(); }catch(_){}
+  view.innerHTML = `<button class="back ghost" type="button" id="bk">← Todas las cajas</button>
+    <div class="set">
+      <section class="panel"><h4>Respaldo</h4>
+        <p>Tus cajas y fotos se guardan solo en este teléfono. Descarga un respaldo de vez en cuando y guárdalo en Drive o en tu correo. Con el mismo archivo puedes pasar todo a otro teléfono.</p>
+        <div class="actions"><button type="button" class="kraft" id="exp">Descargar respaldo</button><button type="button" id="imp">Importar respaldo</button></div>
+        <p style="margin:10px 0 0;font-size:13px">${esc(usage)} ${persisted?"El navegador no borrará estos datos automáticamente.":""}</p>
+      </section>
+      <section class="panel"><h4>Instalar en Android</h4>
+        <p>En Chrome, abre el menú ⋮ y toca <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>. Queda con su ícono y funciona sin internet.</p>
+      </section>
+      <section class="panel"><h4>Dirección de los QR</h4>
+        <p style="margin:0">Las etiquetas apuntan a <span class="code" style="overflow-wrap:anywhere">${esc(baseURL())}</span>. Si cambias la app de dirección, los QR antiguos se siguen leyendo con el escáner de la app.</p>
+      </section>
+    </div>`;
+  $("#bk").onclick = () => go("#/");
+  $("#exp").onclick = exportBackup;
+  $("#imp").onclick = () => $("#importFile").click();
+}
+const blobToB64 = blob => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); });
+async function exportBackup(){
+  const btn = $("#exp"); btn.disabled = true; btn.textContent = "Preparando…";
+  try{
+    const photos = await getAllPhotos(); const used = new Set(boxes.flatMap(b=>b.photos||[]));
+    const out = { app:"mis-cajas", version:1, exportedAt:new Date().toISOString(), boxes,
+      photos: await Promise.all(photos.filter(p=>used.has(p.id)).map(async p => ({id:p.id, type:p.blob.type||"image/jpeg", data: await blobToB64(p.blob)}))) };
+    const blob = new Blob([JSON.stringify(out)], {type:"application/json"});
+    const name = `mis-cajas-respaldo-${new Date().toISOString().slice(0,10)}.json`;
+    const file = new File([blob], name, {type:"application/json"});
+    if(navigator.canShare?.({files:[file]})){ try{ await navigator.share({files:[file], title:"Respaldo Mis Cajas"}); toast("Respaldo listo"); return; }catch(e){ if(e.name==="AbortError") return; } }
+    downloadBlob(blob, name); toast("Respaldo descargado");
+  }catch(_){ toast("No se pudo crear el respaldo"); }
+  finally{ if(btn.isConnected){ btn.disabled=false; btn.textContent="Descargar respaldo"; } }
+}
+$("#importFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    if(data.app!=="mis-cajas" || !Array.isArray(data.boxes)) throw new Error("formato");
+    for(const p of data.photos||[]){
+      const bin = atob(p.data); const arr = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      await putPhoto(p.id, new Blob([arr], {type:p.type||"image/jpeg"}));
+    }
+    for(const b of data.boxes) if(b && CODE_RE.test(b.code)) await putBox(b);
+    await reload(); askPersist(); toast(`Importadas ${data.boxes.length} cajas`); go("#/");
+  }catch(_){ toast("Ese archivo no es un respaldo de Mis Cajas"); }
+};
+
+/* ---------- instalación y arranque ---------- */
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; $("#btnInstall").hidden = false; });
+window.addEventListener("appinstalled", () => { $("#btnInstall").hidden = true; toast("Mis Cajas quedó instalada"); });
+$("#btnInstall").onclick = async () => { if(!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(()=>{}); installEvt = null; $("#btnInstall").hidden = true; };
+$("#btnScan").onclick = openScanner;
+$("#btnNew").onclick = () => go("#/nueva");
+$("#btnSettings").onclick = () => go("#/ajustes");
+if("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+(async function start(){
+  try{ idb = await openDB(); await reload(); }
+  catch(err){ view.innerHTML = `<div class="empty"><h2>No se pudo abrir el almacenamiento</h2><p>Abre la app en Chrome normal (no en modo incógnito).</p></div>`; return; }
+  render();
+})();
+})();
+</script>
+</body>
+</html>
