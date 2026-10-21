@@ -395,7 +395,9 @@ function renderEdit(code){
       <div class="f">Fotos del contenido <small>La primera es la portada. Hasta 6.</small>
         <div class="pgrid">
           ${d.photos.map((p,i)=>`<div class="pitem"><img data-photo="${esc(p)}" alt="Foto ${i+1}"><button type="button" data-rm="${i}">Quitar</button></div>`).join("")}
-          ${d.photos.length<6 ? `<label class="addphoto">${uploading?"Guardando…":"+ Sacar o elegir foto"}<input type="file" id="fPhoto" accept="image/*" multiple hidden></label>` : ""}
+          ${d.photos.length<6 ? (uploading ? `<div class="addphoto">Guardando…</div>` :
+            `<label class="addphoto"><span><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><br>Sacar foto</span><input type="file" class="fPhoto" accept="image/*" capture="environment" hidden></label>
+            <label class="addphoto"><span><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></svg><br>Elegir de galería</span><input type="file" class="fPhoto" accept="image/*" multiple hidden></label>`) : ""}
         </div>
       </div>
       <label class="f">Qué hay dentro <small>Una cosa por línea. Ej: “6 platos hondos”.</small>
@@ -412,8 +414,7 @@ function renderEdit(code){
   };
   $("#cancel").onclick = cancel; $("#cancel2").onclick = cancel;
   view.querySelectorAll("[data-rm]").forEach(btn => btn.onclick = () => { sync(); d.photos.splice(+btn.dataset.rm,1); renderEdit(code); });
-  const fp = $("#fPhoto");
-  if(fp) fp.onchange = async e => {
+  view.querySelectorAll(".fPhoto").forEach(fp => fp.onchange = async e => {
     sync(); const files = [...e.target.files].slice(0, 6-d.photos.length); if(!files.length) return;
     uploading = true; renderEdit(code);
     for(const f of files){
@@ -422,7 +423,7 @@ function renderEdit(code){
       catch(err){ toast("No se pudo leer esa foto"); }
     }
     uploading = false; if(parseRoute().name==="edit") renderEdit(code);
-  };
+  });
   $("#f").onsubmit = async e => {
     e.preventDefault(); sync();
     const rec = { code:d.code, number:d.number, name:d.name.trim(), location:d.location.trim(), notes:(d.notes||"").trim(),
