@@ -15,7 +15,7 @@
 /* Una columna tipo app; tarjetas en grilla; barra de acciones fija abajo */
 :root{
   --bg:#f3f1ec; --surface:#ffffff; --ink:#1e1b17; --muted:#6c655b; --line:#ddd7cc;
-  --kraft:#00bcd4; --kraft-soft:#efe1cf; --kraft-ink:#7a4f1f; --danger:#b3261e;
+  --kraft:#00bcd4; --photo-bg:#2a2622; --kraft-soft:#efe1cf; --kraft-ink:#7a4f1f; --danger:#b3261e;
   --f-display:"Saira Stencil One","Arial Black",Impact,sans-serif;
   --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -56,8 +56,29 @@ textarea{min-height:200px;resize:vertical;line-height:1.6}
 .search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;text-align:left;padding:0;font-weight:400;align-items:stretch}
-.thumb{aspect-ratio:16/10;background:var(--kraft-soft);display:grid;place-items:center;width:100%;overflow:hidden;position:relative}
-.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb{aspect-ratio:4/3;background:var(--photo-bg);display:grid;place-items:center;width:100%;overflow:hidden;position:relative}
+.thumb.noph{background:var(--kraft-soft)}
+.thumb img,.tile img,.lthumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb img{position:absolute;inset:0}
+/* selector de vista */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:3px;gap:2px}
+.seg button{min-height:36px;min-width:42px;padding:6px 10px;border:0;background:transparent;color:var(--muted);border-radius:999px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+/* mosaico */
+.mosaic{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.tile{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--photo-bg);padding:0;border:1px solid var(--line);min-height:0;display:block}
+.tile.noph{background:var(--kraft-soft);display:grid;place-items:center}
+.tile .noimg{font-family:var(--f-display);font-size:34px;color:var(--kraft);opacity:.6}
+.tile .numtag{left:6px;top:6px;font-size:14px;padding:1px 7px;border-radius:5px}
+/* lista */
+.list{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:60px auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px 6px 6px;text-align:left;font-weight:400;min-height:0;justify-content:stretch}
+.lthumb{width:60px;height:60px;border-radius:8px;overflow:hidden;background:var(--photo-bg)}
+.lthumb.noph{background:var(--kraft-soft)}
+.lnum{font-family:var(--f-display);font-size:28px;line-height:1;color:var(--kraft);min-width:2ch}
+.lname{display:block;font-weight:600;margin:0 0 3px;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .chev{color:var(--muted)}
 .thumb .noimg{font-family:var(--f-display);font-size:56px;color:var(--kraft);opacity:.55}
 .numtag{position:absolute;left:10px;top:10px;background:var(--ink);color:var(--bg);font-family:var(--f-display);font-size:18px;padding:2px 10px;border-radius:6px}
 .card .body{padding:12px 14px 14px;display:grid;gap:4px;min-width:0}
@@ -299,14 +320,38 @@ function renderHome(){
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input type="search" id="q" placeholder="¿Dónde guardé…? Busca un objeto o caja" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
     </div>
-    <div class="actions" style="margin-bottom:14px"><button type="button" class="ghost" id="toLabels">Imprimir etiquetas</button></div>
-    ${list.length ? `<div class="grid">${list.map(({b,hits})=>cardHTML(b,hits,q)).join("")}</div>`
+    <div class="toolbar"><button type="button" class="ghost" id="toLabels">Imprimir etiquetas</button>
+      <div class="seg" role="group" aria-label="Vista">
+        ${VIEWS.map(v=>`<button type="button" data-view="${v.id}" aria-pressed="${v.id===homeView}" aria-label="${v.label}" title="${v.label}">${v.icon}</button>`).join("")}
+      </div></div>
+    ${list.length ? listHTML(list,q)
       : `<div class="empty"><h2>Nada con “${esc(query)}”</h2><p>Prueba con otra palabra o revisa cómo lo anotaste.</p></div>`}`;
   const qi = $("#q");
   qi.oninput = e => { query = e.target.value; const p = qi.selectionStart; renderHome(); const n=$("#q"); n.focus(); try{ n.setSelectionRange(p,p); }catch(_){} };
   $("#toLabels").onclick = () => go("#/etiquetas");
-  view.querySelectorAll(".card").forEach(c => c.onclick = () => go("#/caja/"+c.dataset.code));
+  view.querySelectorAll("[data-code]").forEach(c => c.onclick = () => go("#/caja/"+c.dataset.code));
+  view.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { homeView = b.dataset.view; try{ localStorage.setItem("mc-vista", homeView); }catch(_){} renderHome(); });
   hydrateImgs(view);
+}
+const VIEWS = [
+  {id:"tarjetas", label:"Tarjetas", icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="8" rx="2"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>`},
+  {id:"mosaico", label:"Mosaico", icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`},
+  {id:"lista", label:"Lista", icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`}
+];
+let homeView = "tarjetas";
+try{ const v = localStorage.getItem("mc-vista"); if(VIEWS.some(x=>x.id===v)) homeView = v; }catch(_){}
+function listHTML(list,q){
+  if(homeView==="mosaico") return `<div class="mosaic">${list.map(({b})=>{ const p=(b.photos||[])[0];
+    return `<button class="tile${p?"":" noph"}" type="button" data-code="${esc(b.code)}" aria-label="Caja ${pad2(b.number)} ${esc(b.name||"")}">${p?`<img data-photo="${esc(p)}" alt="">`:`<span class="noimg">${pad2(b.number)}</span>`}<span class="numtag">${pad2(b.number)}</span></button>`; }).join("")}</div>`;
+  if(homeView==="lista") return `<div class="list">${list.map(({b,hits})=>{ const p=(b.photos||[])[0]; const n=(b.items||[]).length;
+    return `<button class="lrow" type="button" data-code="${esc(b.code)}">
+      <span class="lthumb${p?"":" noph"}">${p?`<img data-photo="${esc(p)}" alt="">`:""}</span>
+      <span class="lnum">${pad2(b.number)}</span>
+      <span style="min-width:0"><span class="lname">${esc(b.name||"Caja sin nombre")}</span>
+        <span class="meta">${b.location?`<span class="chip">${esc(b.location)}</span>`:""}<span>${n} ${n===1?"cosa":"cosas"}</span></span>
+        ${hits.length?`<span class="hit" style="display:block;margin-top:3px">${hits.slice(0,2).map(x=>highlight(x,q)).join(" · ")}</span>`:""}</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>`; }).join("")}</div>`;
+  return `<div class="grid">${list.map(({b,hits})=>cardHTML(b,hits,q)).join("")}</div>`;
 }
 function highlight(text,q){
   const i = norm(text).indexOf(q); if(i<0) return esc(text);
@@ -315,7 +360,7 @@ function highlight(text,q){
 function cardHTML(b,hits,q){
   const p = (b.photos||[])[0]; const n = (b.items||[]).length;
   return `<button class="card" type="button" data-code="${esc(b.code)}">
-    <div class="thumb">${p?`<img data-photo="${esc(p)}" alt="">`:`<span class="noimg">${pad2(b.number)}</span>`}<span class="numtag">${pad2(b.number)}</span></div>
+    <div class="thumb${p?"":" noph"}">${p?`<img data-photo="${esc(p)}" alt="">`:`<span class="noimg">${pad2(b.number)}</span>`}<span class="numtag">${pad2(b.number)}</span></div>
     <div class="body"><h3>${esc(b.name||"Caja sin nombre")}</h3>
       <div class="meta">${b.location?`<span class="chip">${esc(b.location)}</span>`:""}<span>${n} ${n===1?"cosa":"cosas"}</span><span class="code">${esc(b.code)}</span></div>
       ${hits.length?`<div class="hit">${hits.slice(0,3).map(h=>highlight(h,q)).join(" · ")}</div>`:""}
