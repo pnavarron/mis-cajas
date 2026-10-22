@@ -117,6 +117,10 @@ ul.items li::before{content:"";width:7px;height:7px;border-radius:2px;background
 .confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:color-mix(in srgb,var(--danger) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);border-radius:10px;padding:10px 12px}
 form.edit{display:grid;gap:16px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.numf input{max-width:140px;font-family:var(--f-mono);font-size:18px;letter-spacing:.06em}
+.err{color:var(--danger);font-size:13px;font-weight:600}
+.free{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-weight:400;font-size:13px;color:var(--muted)}
+.free button{min-height:32px;padding:4px 12px;font-family:var(--f-mono);font-size:13px}
 @media (max-width:560px){.row2{grid-template-columns:1fr}}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .pitem{position:relative}
@@ -320,7 +324,7 @@ function renderHome(){
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input type="search" id="q" placeholder="¿Dónde guardé…? Busca un objeto o caja" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
     </div>
-    <div class="toolbar"><button type="button" class="ghost" id="toLabels">Imprimir etiquetas</button>
+    <div class="toolbar"><button type="button" class="ghost" id="btnExit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/></svg>Salir</button>
       <div class="seg" role="group" aria-label="Vista">
         ${VIEWS.map(v=>`<button type="button" data-view="${v.id}" aria-pressed="${v.id===homeView}" aria-label="${v.label}" title="${v.label}">${v.icon}</button>`).join("")}
       </div></div>
@@ -328,10 +332,14 @@ function renderHome(){
       : `<div class="empty"><h2>Nada con “${esc(query)}”</h2><p>Prueba con otra palabra o revisa cómo lo anotaste.</p></div>`}`;
   const qi = $("#q");
   qi.oninput = e => { query = e.target.value; const p = qi.selectionStart; renderHome(); const n=$("#q"); n.focus(); try{ n.setSelectionRange(p,p); }catch(_){} };
-  $("#toLabels").onclick = () => go("#/etiquetas");
+  $("#btnExit").onclick = exitApp;
   view.querySelectorAll("[data-code]").forEach(c => c.onclick = () => go("#/caja/"+c.dataset.code));
   view.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { homeView = b.dataset.view; try{ localStorage.setItem("mc-vista", homeView); }catch(_){} renderHome(); });
   hydrateImgs(view);
+}
+function exitApp(){
+  try{ window.close(); }catch(_){}
+  setTimeout(() => { if(!document.hidden) toast("Para salir, usa el botón o gesto Atrás del teléfono"); }, 400);
 }
 const VIEWS = [
   {id:"tarjetas", label:"Tarjetas", icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="8" rx="2"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>`},
@@ -432,7 +440,12 @@ function renderEdit(code){
     <button class="back ghost" type="button" id="cancel">← Cancelar</button>
     <div class="dhead" style="margin-bottom:14px"><div class="bignum">${pad2(d.number)}</div>
       <div class="t"><h2>${existing?"Editar caja":"Nueva caja"}</h2><div class="meta"><span class="code">Código ${esc(d.code)}</span></div></div></div>
-    <form class="edit" id="f">
+    <form class="edit" id="f" novalidate>
+      <div class="f numf"><label for="fNum">Número de caja</label>
+        <input type="text" id="fNum" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${esc(d.numText ?? String(d.number))}" autocomplete="off">
+        <span class="err" id="numErr" role="alert"></span>
+        ${freeNums(d).length ? `<span class="free">Libres: ${freeNums(d).map(n=>`<button type="button" class="ghost" data-num="${n}">${pad2(n)}</button>`).join("")}</span>` : ""}
+      </div>
       <div class="row2">
         <label class="f">Nombre<input type="text" id="fName" value="${esc(d.name)}" placeholder="Ej: Loza de la cocina" maxlength="80"></label>
         <label class="f">Dónde está<input type="text" id="fLoc" value="${esc(d.location)}" placeholder="Ej: Bodega, repisa 2" maxlength="60"></label>
@@ -451,6 +464,14 @@ function renderEdit(code){
       <div class="actions"><button type="submit" class="primary" id="save" ${uploading?"disabled":""}>Guardar caja</button><button type="button" class="ghost" id="cancel2">Cancelar</button></div>
     </form>`;
   hydrateImgs(view);
+  const numCheck = () => {
+    const msg = numError(d.numText ?? String(d.number), d);
+    $("#numErr").textContent = msg || "";
+    if(!msg){ d.number = parseInt(d.numText ?? d.number, 10); $(".dhead .bignum").textContent = pad2(d.number); }
+    return msg;
+  };
+  $("#fNum").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g,""); d.numText = e.target.value; numCheck(); });
+  view.querySelectorAll("[data-num]").forEach(b => b.onclick = () => { d.numText = b.dataset.num; $("#fNum").value = b.dataset.num; numCheck(); });
   const sync = () => { d.name=$("#fName").value; d.location=$("#fLoc").value; d.itemsText=$("#fItems").value; d.notes=$("#fNotes").value; };
   ["#fName","#fLoc","#fItems","#fNotes"].forEach(s => $(s).addEventListener("input", sync));
   const cancel = async () => {
@@ -471,6 +492,7 @@ function renderEdit(code){
   });
   $("#f").onsubmit = async e => {
     e.preventDefault(); sync();
+    if(numCheck()){ $("#fNum").focus(); $("#fNum").scrollIntoView({block:"center"}); return; }
     const rec = { code:d.code, number:d.number, name:d.name.trim(), location:d.location.trim(), notes:(d.notes||"").trim(),
       items:d.itemsText.split("\n").map(s=>s.trim()).filter(Boolean), photos:d.photos, createdAt:d.createdAt||Date.now(), updatedAt:Date.now() };
     try{
@@ -480,6 +502,18 @@ function renderEdit(code){
       await reload(); askPersist(); draft = null; toast("Caja guardada"); go("#/caja/"+rec.code);
     }catch(err){ toast("No se pudo guardar. Revisa el espacio libre del teléfono."); }
   };
+}
+function numError(text, d){
+  const t = String(text).trim();
+  if(!/^\d{1,4}$/.test(t) || parseInt(t,10) < 1) return "Escribe un número entre 1 y 9999.";
+  const n = parseInt(t,10); const other = boxes.find(b => b.number === n && b.code !== d.code);
+  return other ? `Ese número ya lo usa la caja “${other.name || "sin nombre"}”. Elige otro.` : "";
+}
+function freeNums(d){
+  const used = new Set(boxes.filter(b => b.code !== d.code).map(b => b.number));
+  const max = Math.max(0, ...used); const out = [];
+  for(let n = 1; n < max && out.length < 5; n++) if(!used.has(n)) out.push(n);
+  return out;
 }
 function loadImg(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file); const i=new Image(); i.onload=()=>{res(i);URL.revokeObjectURL(u)}; i.onerror=rej; i.src=u; }); }
 async function shrink(file, max=1600){
@@ -535,13 +569,13 @@ function renderLabels(){
   if(!boxes.length){ go("#/"); return; }
   if(!renderLabels.sel) renderLabels.sel = new Set(boxes.map(b=>b.code));
   const sel = renderLabels.sel;
-  view.innerHTML = `<button class="back ghost" type="button" id="bk">← Todas las cajas</button>
+  view.innerHTML = `<button class="back ghost" type="button" id="bk">← Ajustes</button>
     <section class="panel" style="display:grid;gap:12px"><h4 style="margin:0">Hoja de etiquetas</h4>
     <p style="margin:0;color:var(--muted)">Elige las cajas. Se imprimen 8 etiquetas por hoja tamaño carta; en el teléfono puedes enviarlas a la impresora o guardarlas como PDF.</p>
     <div class="actions"><button type="button" class="ghost" id="all">Todas</button><button type="button" class="ghost" id="none">Ninguna</button></div>
     <div>${boxes.map(b=>`<label class="sel"><input type="checkbox" data-code="${esc(b.code)}" ${sel.has(b.code)?"checked":""}><b>${pad2(b.number)}</b><span class="nm">${esc(b.name||"Caja sin nombre")}</span><span class="code" style="margin-left:auto;color:var(--muted)">${esc(b.code)}</span></label>`).join("")}</div>
     <button type="button" class="kraft" id="gen">Imprimir ${sel.size} ${sel.size===1?"etiqueta":"etiquetas"}</button></section>`;
-  $("#bk").onclick = () => go("#/");
+  $("#bk").onclick = () => go("#/ajustes");
   view.querySelectorAll(".sel input").forEach(i => i.onchange = () => { i.checked ? sel.add(i.dataset.code) : sel.delete(i.dataset.code); $("#gen").textContent = `Imprimir ${sel.size} ${sel.size===1?"etiqueta":"etiquetas"}`; });
   $("#all").onclick = () => { boxes.forEach(b=>sel.add(b.code)); renderLabels(); };
   $("#none").onclick = () => { sel.clear(); renderLabels(); };
@@ -654,6 +688,10 @@ async function renderSettings(){
   let persisted = false; try{ persisted = await navigator.storage.persisted(); }catch(_){}
   view.innerHTML = `<button class="back ghost" type="button" id="bk">← Todas las cajas</button>
     <div class="set">
+      <section class="panel"><h4>Etiquetas</h4>
+        <p>Imprime las etiquetas QR de una o varias cajas, 8 por hoja tamaño carta.</p>
+        <div class="actions"><button type="button" class="kraft" id="toLabels">Imprimir etiquetas</button></div>
+      </section>
       <section class="panel"><h4>Respaldo</h4>
         <p>Tus cajas y fotos se guardan solo en este teléfono. Descarga un respaldo de vez en cuando y guárdalo en Drive o en tu correo. Con el mismo archivo puedes pasar todo a otro teléfono.</p>
         <div class="actions"><button type="button" class="kraft" id="exp">Descargar respaldo</button><button type="button" id="imp">Importar respaldo</button></div>
@@ -668,6 +706,7 @@ async function renderSettings(){
     </div>`;
   $("#bk").onclick = () => go("#/");
   $("#exp").onclick = exportBackup;
+  $("#toLabels").onclick = () => { if(!boxes.length){ toast("Todavía no tienes cajas"); return; } go("#/etiquetas"); };
   $("#imp").onclick = () => $("#importFile").click();
 }
 const blobToB64 = blob => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); });
